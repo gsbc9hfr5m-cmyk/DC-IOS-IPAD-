@@ -1,0 +1,82 @@
+/**
+ * 화면 문자열은 전부 여기서 관리한다. 한국어 단일이며 다국어 프레임워크는 쓰지 않는다.
+ * (도움말 문구는 src/help/helpTexts.ts)
+ */
+export const strings = {
+  appName: 'DC 클리너',
+  common: {
+    help: '도움말',
+    close: '닫기',
+    ok: '확인',
+    cancel: '취소',
+    comingSoon: '다음 단계에서 구현됩니다',
+  },
+  tabs: {
+    home: '홈',
+    presets: '프리셋',
+    history: '기록',
+    settings: '설정',
+  },
+  home: {
+    statusTitle: '현재 작업',
+    statusIdle: '대기 중',
+    statusIdleDetail: '실행 중인 작업이 없습니다.',
+    run: '클리너 돌리기',
+    dryRun: '미리보기',
+    recentTitle: '최근 결과',
+    recentEmpty: '아직 실행 기록이 없습니다.',
+    loginNeeded: '설정 > 계정에서 먼저 로그인하세요.',
+  },
+  presets: {
+    title: '프리셋',
+    empty: '저장된 프리셋이 없습니다.',
+    add: '새 프리셋',
+  },
+  history: {
+    title: '기록',
+    deletions: '삭제 이력',
+    backups: '백업',
+    stats: '통계',
+  },
+  settings: {
+    title: '설정',
+    sections: {
+      account: '계정',
+      captcha: '캡챠',
+      background: '백그라운드',
+      safety: '지연 / 안전',
+      protect: '보호 목록',
+      lock: '앱 잠금',
+      notify: '알림',
+      backup: '백업 / 복원',
+      debug: '디버그',
+      about: '정보',
+    },
+    account: '디시 계정',
+    captchaMode: '캡챠 처리 방식',
+    captchaApiKey: '캡챠 API 키',
+    persistentMode: '지속 실행 모드',
+    backgroundLimits: 'iOS 백그라운드 제한 안내',
+    requestDelay: '요청 간격',
+    concurrency: '동시 처리 수',
+    autoPause: '자동 일시정지',
+    protectList: '보호 목록 관리',
+    appLock: 'Face ID 잠금',
+    reauth: '중요 동작 재인증',
+    notifications: '알림 설정',
+    backupBeforeDelete: '삭제 전 백업',
+    settingsBackup: '설정 내보내기 / 가져오기',
+    debugMode: '디버그 모드',
+    version: '버전',
+    blockWarningTitle: '차단 주의',
+    blockWarning:
+      '짧은 시간에 많은 글을 지우면 디시가 요청을 막거나 계정을 제한할 수 있습니다. 기본 지연 시간은 보수적으로 설정되어 있습니다.',
+    notLoggedIn: '로그인 안 됨',
+  },
+  onboarding: {
+    title: '시작하기 전에',
+    helpHint: '(!) 아이콘을 누르면 각 기능의 설명이 나옵니다.',
+    irreversible: '삭제한 글과 댓글은 되돌릴 수 없습니다. 실행 전에 꼭 미리보기로 확인하세요.',
+    start: '시작하기',
+  },
+} as const;

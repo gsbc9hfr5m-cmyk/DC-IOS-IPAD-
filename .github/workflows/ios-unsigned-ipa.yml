@@ -1,0 +1,90 @@
+# 서명 없는 IPA 빌드 (Apple Developer 계정 없이 Sideloadly/AltStore로 설치할 때 사용)
+# - 실행: GitHub 저장소 > Actions > "iOS unsigned IPA" > Run workflow (또는 main에 push)
+# - 결과: 실행 페이지 하단 Artifacts의 "DC-Cleaner-unsigned-ipa" 다운로드
+# - 리퀴드 글래스(iOS 26 API)는 Xcode 26 이상으로 빌드해야 적용된다.
+name: iOS unsigned IPA
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths-ignore:
+      - "docs/**"
+      - "**/*.md"
+
+concurrency:
+  group: ios-unsigned-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: macos-26
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Xcode 선택 (최신 안정판)
+        uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: latest-stable
+
+      - name: 의존성 설치
+        run: npm ci
+
+      - name: 타입 검사 / 테스트
+        run: |
+          npm run typecheck
+          npm test -- --ci
+
+      - name: 네이티브 프로젝트 생성 (prebuild)
+        run: npx expo prebuild --platform ios --clean --no-install
+        env:
+          CI: "1"
+
+      - name: CocoaPods 설치
+        working-directory: ios
+        run: pod install
+
+      - name: 아카이브 (서명 없음)
+        run: |
+          WORKSPACE=$(ls -d ios/*.xcworkspace | head -n1)
+          SCHEME=$(basename "$WORKSPACE" .xcworkspace)
+          echo "workspace=$WORKSPACE scheme=$SCHEME"
+          set -o pipefail
+          xcodebuild archive \
+            -workspace "$WORKSPACE" \
+            -scheme "$SCHEME" \
+            -configuration Release \
+            -sdk iphoneos \
+            -destination "generic/platform=iOS" \
+            -archivePath "$RUNNER_TEMP/app.xcarchive" \
+            CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY="" \
+            | tee "$RUNNER_TEMP/xcodebuild.log" | grep -E "error:|warning: .*deprecated|\*\* ARCHIVE" || true
+          test -d "$RUNNER_TEMP/app.xcarchive/Products/Applications"
+
+      - name: IPA 패키징
+        run: |
+          APP=$(ls -d "$RUNNER_TEMP"/app.xcarchive/Products/Applications/*.app | head -n1)
+          mkdir -p "$RUNNER_TEMP/ipa/Payload"
+          cp -R "$APP" "$RUNNER_TEMP/ipa/Payload/"
+          cd "$RUNNER_TEMP/ipa" && zip -qry "$GITHUB_WORKSPACE/DC-Cleaner-unsigned.ipa" Payload
+          ls -lh "$GITHUB_WORKSPACE/DC-Cleaner-unsigned.ipa"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: DC-Cleaner-unsigned-ipa
+          path: DC-Cleaner-unsigned.ipa
+          retention-days: 14
+
+      - name: 빌드 로그 (실패 시)
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: xcodebuild-log
+          path: ${{ runner.temp }}/xcodebuild.log
+          if-no-files-found: ignore
