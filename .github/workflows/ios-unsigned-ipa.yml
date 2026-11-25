@@ -21,9 +21,9 @@ jobs:
     runs-on: macos-26
     timeout-minutes: 60
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: 22
           cache: npm
@@ -75,7 +75,7 @@ jobs:
           cd "$RUNNER_TEMP/ipa" && zip -qry "$GITHUB_WORKSPACE/DC-Cleaner-unsigned.ipa" Payload
           ls -lh "$GITHUB_WORKSPACE/DC-Cleaner-unsigned.ipa"
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: DC-Cleaner-unsigned-ipa
           path: DC-Cleaner-unsigned.ipa
@@ -83,7 +83,7 @@ jobs:
 
       - name: 빌드 로그 (실패 시)
         if: failure()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: xcodebuild-log
           path: ${{ runner.temp }}/xcodebuild.log
