@@ -1,9 +1,12 @@
 import { NativeTabs } from 'expo-router/native-tabs';
 import { DarkTheme, DefaultTheme, ThemeProvider } from 'expo-router';
+import { useEffect } from 'react';
 import { useColorScheme } from 'react-native';
 import type { SFSymbol } from 'sf-symbols-typescript';
 
+import { CaptchaSheet } from '@/captcha/CaptchaSheet';
 import { HelpProvider } from '@/help/HelpBadge';
+import { restoreSession } from '@/services/session';
 import { OnboardingGate } from '@/onboarding/OnboardingGate';
 import { strings } from '@/strings';
 import { colors } from '@/ui/colors';
@@ -20,6 +23,10 @@ function tabIcon(name: SFSymbol) {
 
 export default function RootLayout() {
   const scheme = useColorScheme();
+  useEffect(() => {
+    // 앱 시작 시 쿠키 세션 확인 → 없으면 저장된 자격증명으로 조용히 재로그인
+    void restoreSession();
+  }, []);
   return (
     <ThemeProvider value={scheme === 'dark' ? DarkTheme : DefaultTheme}>
       <HelpProvider>
@@ -42,6 +49,7 @@ export default function RootLayout() {
               <NativeTabs.Trigger.Icon sf={tabIcon(ICONS.tabSettings)} />
             </NativeTabs.Trigger>
           </NativeTabs>
+          <CaptchaSheet />
         </OnboardingGate>
       </HelpProvider>
     </ThemeProvider>

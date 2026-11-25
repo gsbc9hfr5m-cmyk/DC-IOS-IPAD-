@@ -257,6 +257,15 @@ export class DcClient {
     return { status: 'failed', message: alertMsg || '아이디 또는 비밀번호를 확인하세요.' };
   }
 
+  /** 디시 로그아웃. 실패해도 로컬 세션 정보는 지운다. */
+  async logout(): Promise<void> {
+    try {
+      await this.send({ method: 'GET', url: `${DC_HOSTS.sign}${DC_PATHS.logout}?r_url=${encodeURIComponent(DC_HOSTS.mobile)}` });
+    } finally {
+      this.clearSession();
+    }
+  }
+
   // ───────────────────────── 글/댓글 ─────────────────────────
 
   async listGallog(menu: GallogListMenu, page: number): Promise<GallogPage> {

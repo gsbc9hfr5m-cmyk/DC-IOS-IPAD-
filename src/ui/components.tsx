@@ -1,6 +1,16 @@
 import * as Haptics from 'expo-haptics';
 import type { ReactNode } from 'react';
-import { Pressable, StyleSheet, Text as RNText, View, type StyleProp, type TextProps, type ViewStyle } from 'react-native';
+import {
+  Pressable,
+  StyleSheet,
+  Text as RNText,
+  TextInput,
+  View,
+  type StyleProp,
+  type TextInputProps,
+  type TextProps,
+  type ViewStyle,
+} from 'react-native';
 
 import { HelpBadge } from '@/help/HelpBadge';
 import type { HelpId } from '@/help/helpTexts';
@@ -122,6 +132,26 @@ export function ListRow({ label, icon, help, value, right, onPress, last }: RowP
   );
 }
 
+type FieldProps = Omit<TextInputProps, 'style'> & { label: string; help?: HelpId; last?: boolean };
+
+/** 글래스 카드 안의 입력 행 */
+export function TextField({ label, help, last, ...input }: FieldProps) {
+  return (
+    <View style={[styles.field, !last && styles.rowDivider]}>
+      <View style={styles.fieldLabel}>
+        <LabelWithHelp label={label} help={help} variant="callout" />
+      </View>
+      <TextInput
+        placeholderTextColor={colors.tertiaryLabel}
+        autoCapitalize="none"
+        autoCorrect={false}
+        {...input}
+        style={styles.fieldInput}
+      />
+    </View>
+  );
+}
+
 export function Section({ title, footer, children }: { title?: string; footer?: string; children: ReactNode }) {
   return (
     <View style={styles.section}>
@@ -158,6 +188,9 @@ const styles = StyleSheet.create({
   rowDivider: { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.separator },
   rowLabel: { flex: 1 },
   rowValue: { maxWidth: '45%' },
+  field: { minHeight: 52, paddingHorizontal: 16, flexDirection: 'row', alignItems: 'center', gap: 8 },
+  fieldLabel: { width: 96 },
+  fieldInput: { flex: 1, fontSize: 17, color: colors.label, paddingVertical: 12 },
   section: { gap: 6 },
   sectionTitle: { paddingHorizontal: 16, textTransform: 'uppercase' },
   sectionCard: { padding: 0, gap: 0 },

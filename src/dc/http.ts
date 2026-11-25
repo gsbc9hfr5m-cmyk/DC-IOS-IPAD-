@@ -3,6 +3,8 @@
  * 쿠키: iOS의 fetch는 NSHTTPCookieStorage를 공유하므로 credentials: 'include'로 세션 쿠키가 유지된다.
  * ⚠️ 로그인 쿠키 이름/만료는 미확인(dc-protocol §9-1). 세션은 쿠키를 직접 읽지 않고 응답으로 판정한다.
  */
+import { arrayBufferToBase64 } from '@/util/base64';
+
 import { MOBILE_USER_AGENT } from './config';
 
 export type HttpRequest = {
@@ -54,6 +56,23 @@ export class FetchTransport implements HttpTransport {
     } finally {
       clearTimeout(timer);
     }
+  }
+}
+
+/** 캡챠 이미지처럼 세션 쿠키가 필요한 이미지를 받아 base64로 돌려준다. */
+export async function fetchImageBase64(url: string, timeoutMs = 15_000): Promise<string> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    const res = await fetch(url, {
+      credentials: 'include',
+      signal: controller.signal,
+      headers: { 'User-Agent': MOBILE_USER_AGENT, Accept: 'image/*' },
+    });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    return arrayBufferToBase64(await res.arrayBuffer());
+  } finally {
+    clearTimeout(timer);
   }
 }
 

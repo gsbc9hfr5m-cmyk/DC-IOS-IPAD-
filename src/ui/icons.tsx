@@ -40,6 +40,10 @@ export const ICONS = {
   debug: 'ladybug',
   info: 'info.circle',
   warning: 'exclamationmark.triangle',
+  reload: 'arrow.clockwise',
+  check: 'checkmark',
+  key: 'key',
+  logout: 'rectangle.portrait.and.arrow.right',
 } as const satisfies Record<string, SFSymbol>;
 
 export type IconName = keyof typeof ICONS;

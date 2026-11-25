@@ -1,7 +1,10 @@
 import Constants from 'expo-constants';
-import { Stack } from 'expo-router';
+import { Stack, useRouter } from 'expo-router';
 import { StyleSheet, Switch, View } from 'react-native';
 
+import { SOLVERS } from '@/captcha/solvers';
+import { useSession } from '@/services/session';
+import { useSettings } from '@/settings/settingsStore';
 import { strings } from '@/strings';
 import { GlassCard, LabelWithHelp, ListRow, Section, Text } from '@/ui/components';
 import { Icon } from '@/ui/icons';
@@ -14,6 +17,10 @@ const s = strings.settings;
  * 모든 항목에 (!) 도움말이 붙어 있어야 한다 (spec 2-17).
  */
 export default function SettingsScreen() {
+  const router = useRouter();
+  const session = useSession();
+  const captchaMode = useSettings((st) => st.captchaMode);
+  const captchaSolver = useSettings((st) => st.captchaSolver);
   return (
     <>
       <Stack.Screen options={{ title: s.title }} />
@@ -31,12 +38,25 @@ export default function SettingsScreen() {
         </GlassCard>
 
         <Section title={s.sections.account}>
-          <ListRow icon="account" label={s.account} help="account" value={s.notLoggedIn} last />
+          <ListRow
+            icon="account"
+            label={s.account}
+            help="account"
+            value={session.status === 'loggedIn' && session.uid ? session.uid : session.status === 'checking' ? strings.account.checking : s.notLoggedIn}
+            onPress={() => router.push('/settings/account')}
+            last
+          />
         </Section>
 
         <Section title={s.sections.captcha}>
-          <ListRow icon="captcha" label={s.captchaMode} help="captchaMode" value="수동" />
-          <ListRow label={s.captchaApiKey} help="captchaApiKey" value="없음" last />
+          <ListRow
+            icon="captcha"
+            label={s.captchaMode}
+            help="captchaMode"
+            value={captchaMode === 'auto' ? strings.captcha.modeAutoShort(SOLVERS[captchaSolver].name) : strings.captcha.modeManualShort}
+            onPress={() => router.push('/settings/captcha')}
+            last
+          />
         </Section>
 
         <Section title={s.sections.background}>
