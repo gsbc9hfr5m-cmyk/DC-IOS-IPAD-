@@ -26,7 +26,8 @@ export type RunTarget = {
 };
 
 export type RunOptions = {
-  presetConfig: PresetConfig;
+  /** 예전 프리셋 실행에서만 있다 (추천수/조회수 조건). 갤러리 선택 삭제에는 없다. */
+  presetConfig?: PresetConfig;
   backupEnabled: boolean;
   backupRequired: boolean;
   backupFormat: 'json' | 'html';

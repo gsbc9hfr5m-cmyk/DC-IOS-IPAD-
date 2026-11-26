@@ -4,7 +4,6 @@ import { ActionSheetIOS, Alert, StyleSheet, View } from 'react-native';
 
 import { SOLVERS } from '@/captcha/solvers';
 import { ensureNotificationPermission } from '@/notify/notify';
-import { syncScheduleNotifications } from '@/schedule/scheduler';
 import { authAvailable, authenticate, requireReauth } from '@/security/auth';
 import { useSession } from '@/services/session';
 import { useSettings, type Settings } from '@/settings/settingsStore';
@@ -60,7 +59,6 @@ export default function SettingsScreen() {
   const toggleNotify = async (patch: Partial<Settings>) => {
     if (Object.values(patch).some(Boolean)) await ensureNotificationPermission();
     set(patch);
-    void syncScheduleNotifications();
   };
 
   const openAccount = async () => {
@@ -150,8 +148,7 @@ export default function SettingsScreen() {
 
         <Section title={s.sections.notify}>
           <SwitchRow label={s.notifyDone} help="notifications" value={st.notifyDone} onChange={(notifyDone) => void toggleNotify({ notifyDone })} />
-          <SwitchRow label={s.notifyProblems} value={st.notifyProblems} onChange={(notifyProblems) => void toggleNotify({ notifyProblems })} />
-          <SwitchRow label={s.notifySchedule} help="schedule" value={st.notifySchedule} onChange={(notifySchedule) => void toggleNotify({ notifySchedule })} last />
+          <SwitchRow label={s.notifyProblems} value={st.notifyProblems} onChange={(notifyProblems) => void toggleNotify({ notifyProblems })} last />
         </Section>
 
         <Section title={s.sections.backup}>

@@ -118,8 +118,8 @@ describe('디버그 로그 크기 상한', () => {
 
 describe('단축어 URL (spec 2-12)', () => {
   it('파싱', () => {
-    expect(parseShortcutUrl('dccleaner://run?preset=preset_abc')).toEqual({ action: 'run', preset: 'preset_abc' });
-    expect(parseShortcutUrl('/run?preset=%EC%A0%95%EB%A6%AC')).toEqual({ action: 'run', preset: '정리' });
+    expect(parseShortcutUrl('dccleaner://run?preset=preset_abc')).toBeNull();
+    expect(parseShortcutUrl('/resume')).toEqual({ action: 'resume' });
     expect(parseShortcutUrl('dccleaner://pause')).toEqual({ action: 'pause' });
     expect(parseShortcutUrl('dccleaner://status/')).toEqual({ action: 'status' });
     expect(parseShortcutUrl('dccleaner://run')).toBeNull();
@@ -128,6 +128,6 @@ describe('단축어 URL (spec 2-12)', () => {
   });
 
   it('왕복', () => {
-    expect(parseShortcutUrl(shortcutUrl({ action: 'run', preset: '오래된 댓글' }))).toEqual({ action: 'run', preset: '오래된 댓글' });
+    expect(parseShortcutUrl(shortcutUrl({ action: 'pause' }))).toEqual({ action: 'pause' });
   });
 });

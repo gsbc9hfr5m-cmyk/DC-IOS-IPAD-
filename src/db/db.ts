@@ -114,6 +114,11 @@ const MIGRATIONS: string[] = [
     created_at TEXT NOT NULL
   );
   `,
+  // v2: 갤러리별 목록 화면 (갤러리 이름)
+  `
+  ALTER TABLE items ADD COLUMN gall_name TEXT NOT NULL DEFAULT '';
+  CREATE INDEX IF NOT EXISTS items_gallery ON items(gallery, gall_code, kind);
+  `,
 ];
 
 let db: SQLiteDatabase | null = null;

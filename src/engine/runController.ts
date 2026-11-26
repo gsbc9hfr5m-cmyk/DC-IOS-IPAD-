@@ -9,8 +9,6 @@ import { startPersistentMode, stopPersistentMode } from '@/background/persistent
 import * as repos from '@/db/repos';
 import { syncLiveActivity, updateLastRunWidget } from '@/native/widgets';
 import { notifyNow } from '@/notify/notify';
-import type { Plan } from '@/presets/filter';
-import type { Preset } from '@/presets/types';
 import { dc, ensureSession } from '@/services/session';
 import { getSettings } from '@/settings/settingsStore';
 import { timestampForFile } from '@/util/files';
@@ -71,25 +69,9 @@ export const engine = new RunEngine({
   onChange: (_runId, current) => refresh(current),
 });
 
-function toRunTarget(t: Plan['targets'][number]): RunTarget {
-  return {
-    key: t.key,
-    kind: t.kind,
-    title: t.title,
-    writtenAt: t.writtenAt,
-    galleryId: t.galleryId,
-    gallery: t.gallery,
-    needsMetrics: t.needsMetrics,
-    replyCount: t.replyCount,
-    gallog: t.source.type === 'gallog' ? t.source.item : undefined,
-    guestbook: t.source.type === 'guestbook' ? t.source.item : undefined,
-  };
-}
-
-function runOptions(preset: Preset): RunOptions {
+function runOptions(): RunOptions {
   const s = getSettings();
   return {
-    presetConfig: preset.config,
     backupEnabled: s.backupEnabled,
     backupRequired: s.backupEnabled && s.backupRequired,
     backupFormat: s.backupFormat,
@@ -106,26 +88,19 @@ export function applyRequestDelay() {
 }
 
 /**
- * 계획으로 새 실행을 만든다. 확인(Dry-run 확인 또는 스케줄 사전 확인)은 호출하는 쪽의 책임이다.
+ * 삭제 대상 목록으로 새 실행을 만든다. 확인 대화상자는 호출하는 쪽의 책임이다.
  * 이미 진행 중이거나 멈춘 실행이 있으면 만들지 않는다.
  */
-export function createRun(preset: Preset, plan: Plan, trigger: RunTrigger): string | null {
+export function createRun(name: string, targets: RunTarget[], trigger: RunTrigger = "manual"): string | null {
   if (activeRun()) return null;
-  if (plan.targets.length === 0) return null;
-  const options = runOptions(preset);
+  if (targets.length === 0) return null;
+  const options = runOptions();
   let backupDir: string | null = null;
   if (options.backupEnabled) {
-    const w = openBackupWriter(`${timestampForFile()}-${preset.name.replace(/[^\p{L}\p{N}_-]+/gu, '_').slice(0, 30)}`, options.backupFormat, `DC 클리너 백업 · ${preset.name}`);
+    const w = openBackupWriter(`${timestampForFile()}-${name.replace(/[^\p{L}\p{N}_-]+/gu, '_').slice(0, 30)}`, options.backupFormat, `DC 클리너 백업 · ${name}`);
     backupDir = w.dir;
   }
-  const id = sqliteRunStore.createRun({
-    presetId: preset.id,
-    presetName: preset.name,
-    trigger,
-    options,
-    targets: plan.targets.map(toRunTarget),
-    backupDir,
-  });
+  const id = sqliteRunStore.createRun({ presetId: null, presetName: name, trigger, options, targets, backupDir });
   refresh(null);
   return id;
 }

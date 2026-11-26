@@ -15,6 +15,8 @@ export type GallogItem = {
   /** 갤로그 로그 번호: 삭제(log-del)에 쓴다 */
   logNo: string;
   gallCode: string;
+  /** 갤러리 이름 (표시용, gall_name). 없으면 빈 문자열 */
+  gallName: string;
   /** 원글 번호 (댓글이면 그 댓글이 달린 글) */
   postNo: string;
   /** 댓글 번호 (글이면 null) */
@@ -161,6 +163,7 @@ export function parseGallogList(json: unknown): GallogPage {
       typeCode,
       logNo: str(d.no, ep, `${p}.no`),
       gallCode: str(d.gall_code, ep, `${p}.gall_code`),
+      gallName: htmlToText(optStr(d.gall_name)).trim(),
       postNo: str(d.pno, ep, `${p}.pno`),
       commentNo: mapped.kind === 'comment' && cno !== '' && cno !== '0' ? cno : null,
       subject: htmlToText(optStr(d.subject)),

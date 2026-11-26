@@ -1,12 +1,9 @@
 import { useEffect } from 'react';
 import { Alert } from 'react-native';
 
-import { getPreset, listPresets } from '@/db/repos';
-import { createRun, pauseRun, refreshRunState, runNow, useRun } from '@/engine/runController';
+import { pauseRun, refreshRunState, runNow, useRun } from '@/engine/runController';
 import { activeRun } from '@/engine/runRepo';
-import { computePlan } from '@/presets/usePlan';
 import { requireReauth } from '@/security/auth';
-import { ensureSession } from '@/services/session';
 import { strings } from '@/strings';
 
 import { takeShortcut, useShortcutQueue } from './shortcutStore';
@@ -33,32 +30,6 @@ async function handle(a: ShortcutAction) {
         t.statusTitle,
         `${run.presetName} · ${strings.run.status[run.status]}\n${strings.run.counts(c.deleted, c.failed, c.skipped, c.protected, c.unverified)}${c.pending ? `\n${strings.run.remaining(c.pending, Math.ceil((c.pending * 11) / 60))}` : ''}`,
       );
-    }
-    case 'run': {
-      // 프리셋은 ID 또는 이름으로 찾는다
-      const preset = getPreset(a.preset) ?? listPresets().find((p) => p.name === a.preset) ?? null;
-      if (!preset) return Alert.alert(t.unknownPreset);
-      if (activeRun()) return Alert.alert(t.busy);
-      try {
-        await ensureSession();
-      } catch (e) {
-        return Alert.alert(e instanceof Error ? e.message : String(e));
-      }
-      const plan = computePlan(preset);
-      if (!plan.targets.length) return Alert.alert(t.noTargets);
-      // 단축어로 들어와도 반드시 앱 안에서 확인을 받는다 (Dry-run 요약 포함)
-      Alert.alert(t.confirmTitle, t.confirmBody(preset.name, plan.targets.length), [
-        { text: strings.common.cancel, style: 'cancel' },
-        {
-          text: t.confirmOk,
-          style: 'destructive',
-          onPress: async () => {
-            if (!(await requireReauth('runStart'))) return;
-            const id = createRun(preset, plan, 'shortcut');
-            if (id) void runNow(id, { foreground: true });
-          },
-        },
-      ]);
     }
   }
 }

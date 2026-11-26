@@ -10,7 +10,6 @@ import { registerBackgroundTask } from '@/background/backgroundTask';
 import { CaptchaSheet } from '@/captcha/CaptchaSheet';
 import { installCrashHandler } from '@/debug/debugLog';
 import { initRunState } from '@/engine/runController';
-import { syncScheduleNotifications } from '@/schedule/scheduler';
 import { AppLockGate } from '@/security/AppLockGate';
 import { ShortcutHandler } from '@/shortcuts/ShortcutHandler';
 import { HelpProvider } from '@/help/HelpBadge';
@@ -38,7 +37,6 @@ export default function RootLayout() {
     void restoreSession();
     initRunState();
     void registerBackgroundTask();
-    void syncScheduleNotifications();
   }, []);
   return (
     <GestureHandlerRootView style={StyleSheet.absoluteFill}>
@@ -49,10 +47,6 @@ export default function RootLayout() {
             <NativeTabs.Trigger name="(home)">
               <NativeTabs.Trigger.Label>{strings.tabs.home}</NativeTabs.Trigger.Label>
               <NativeTabs.Trigger.Icon sf={tabIcon(ICONS.tabHome)} />
-            </NativeTabs.Trigger>
-            <NativeTabs.Trigger name="presets">
-              <NativeTabs.Trigger.Label>{strings.tabs.presets}</NativeTabs.Trigger.Label>
-              <NativeTabs.Trigger.Icon sf={tabIcon(ICONS.tabPresets)} />
             </NativeTabs.Trigger>
             <NativeTabs.Trigger name="history">
               <NativeTabs.Trigger.Label>{strings.tabs.history}</NativeTabs.Trigger.Label>

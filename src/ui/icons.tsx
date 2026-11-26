@@ -13,8 +13,7 @@ import { iconColor, type IconColor } from './colors';
  */
 export const ICONS = {
   // 탭
-  tabHome: 'house',
-  tabPresets: 'slider.horizontal.3',
+  tabHome: 'sparkles',
   tabHistory: 'clock.arrow.circlepath',
   tabSettings: 'gearshape',
   // 공통
@@ -42,6 +41,8 @@ export const ICONS = {
   warning: 'exclamationmark.triangle',
   reload: 'arrow.clockwise',
   check: 'checkmark',
+  checkOn: 'checkmark.circle',
+  checkOff: 'circle',
   key: 'key',
   logout: 'rectangle.portrait.and.arrow.right',
 } as const satisfies Record<string, SFSymbol>;

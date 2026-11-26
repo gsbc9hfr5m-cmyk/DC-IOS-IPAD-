@@ -104,6 +104,7 @@ function postTarget(n: number, over: Partial<RunTarget> = {}): RunTarget {
       gallery: 'general',
       typeCode: 'G',
       logNo: String(1000 + n),
+      gallName: '프로그래밍',
       gallCode: '100',
       postNo: String(n),
       commentNo: null,

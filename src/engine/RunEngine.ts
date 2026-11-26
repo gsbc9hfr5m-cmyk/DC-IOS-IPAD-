@@ -217,7 +217,7 @@ export class RunEngine {
         return { status: 'skipped', reason: '갤러리 정보를 몰라 추천수/조회수 조건을 확인하지 못했습니다.' };
       }
     }
-    if (t.needsMetrics && !originalGone && !metricsAllowDelete(o.presetConfig.metrics, view?.views ?? null, view?.recommends ?? null)) {
+    if (t.needsMetrics && o.presetConfig && !originalGone && !metricsAllowDelete(o.presetConfig.metrics, view?.views ?? null, view?.recommends ?? null)) {
       return { status: 'skipped', reason: '추천수/조회수 조건으로 남겼습니다.' };
     }
 

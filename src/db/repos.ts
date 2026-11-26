@@ -145,6 +145,7 @@ type ItemRow = {
   type_code: string;
   log_no: string;
   gall_code: string;
+  gall_name: string | null;
   post_no: string;
   comment_no: string | null;
   subject: string;
@@ -175,14 +176,15 @@ function writeGallogItems(kind: 'post' | 'comment', items: { key: string; item: 
     if (replace) db.runSync('DELETE FROM items WHERE kind = ?', kind);
     for (const { key, item: i } of items) {
       db.runSync(
-        `INSERT OR REPLACE INTO items (key, kind, gallery, type_code, log_no, gall_code, post_no, comment_no, subject, memo_text, memo_html, written_at, is_reply, collected_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        `INSERT OR REPLACE INTO items (key, kind, gallery, type_code, log_no, gall_code, gall_name, post_no, comment_no, subject, memo_text, memo_html, written_at, is_reply, collected_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         key,
         i.kind,
         i.gallery,
         i.typeCode,
         i.logNo,
         i.gallCode,
+        i.gallName,
         i.postNo,
         i.commentNo,
         i.subject,
@@ -198,14 +200,17 @@ function writeGallogItems(kind: 'post' | 'comment', items: { key: string; item: 
 }
 
 export function loadGallogItems(): GallogItem[] {
-  return getDb()
-    .getAllSync<ItemRow>('SELECT * FROM items')
-    .map((r) => ({
+  return getDb().getAllSync<ItemRow>('SELECT * FROM items').map(rowToItem);
+}
+
+function rowToItem(r: ItemRow): GallogItem {
+  return {
       kind: r.kind as GallogItem['kind'],
       gallery: r.gallery as GallogItem['gallery'],
       typeCode: r.type_code,
       logNo: r.log_no,
       gallCode: r.gall_code,
+      gallName: r.gall_name ?? '',
       postNo: r.post_no,
       commentNo: r.comment_no,
       subject: r.subject,
@@ -213,7 +218,72 @@ export function loadGallogItems(): GallogItem[] {
       memoHtml: r.memo_html,
       writtenAt: r.written_at,
       isReply: r.is_reply === 1,
+  };
+}
+
+// ───────────────────────── 갤러리별 활동 (메인 화면) ─────────────────────────
+
+export type GalleryGroup = {
+  /** `${gallery}:${gallCode}` */
+  id: string;
+  gallery: GallogItem['gallery'];
+  gallCode: string;
+  name: string;
+  posts: number;
+  comments: number;
+  lastWrittenAt: string;
+};
+
+export function galleryGroupId(item: Pick<GallogItem, 'gallery' | 'gallCode'>): string {
+  return `${item.gallery}:${item.gallCode}`;
+}
+
+/** 내가 글/댓글을 쓴 갤러리 목록 (많이 쓴 순) */
+export function galleryGroups(): GalleryGroup[] {
+  return getDb()
+    .getAllSync<{ gallery: string; gall_code: string; name: string | null; posts: number; comments: number; last: string }>(
+      `SELECT gallery, gall_code, MAX(gall_name) AS name,
+              SUM(kind = 'post') AS posts, SUM(kind = 'comment') AS comments, MAX(written_at) AS last
+       FROM items GROUP BY gallery, gall_code
+       ORDER BY (SUM(kind = 'post') + SUM(kind = 'comment')) DESC, last DESC`,
+    )
+    .map((r) => ({
+      id: `${r.gallery}:${r.gall_code}`,
+      gallery: r.gallery as GallogItem['gallery'],
+      gallCode: r.gall_code,
+      name: r.name || `갤러리 ${r.gall_code}`,
+      posts: r.posts,
+      comments: r.comments,
+      lastWrittenAt: r.last,
     }));
+}
+
+/** 한 갤러리의 글 또는 댓글 (최신순). key는 삭제 대상 키. */
+export function galleryItems(groupId: string, kind?: 'post' | 'comment'): { key: string; item: GallogItem }[] {
+  const i = groupId.indexOf(':');
+  const gallery = groupId.slice(0, i);
+  const gallCode = groupId.slice(i + 1);
+  const rows = kind
+    ? getDb().getAllSync<ItemRow>('SELECT * FROM items WHERE gallery = ? AND gall_code = ? AND kind = ? ORDER BY written_at DESC', gallery, gallCode, kind)
+    : getDb().getAllSync<ItemRow>('SELECT * FROM items WHERE gallery = ? AND gall_code = ? ORDER BY written_at DESC', gallery, gallCode);
+  return rows.map((r) => ({ key: r.key, item: rowToItem(r) }));
+}
+
+/** 전체 목록을 끝까지 읽었을 때: 이번에 보이지 않은 항목(이미 지워진 것)을 캐시에서 뺀다 */
+export function removeItemsNotIn(kind: 'post' | 'comment', keep: Set<string>): number {
+  const db = getDb();
+  const stale = db
+    .getAllSync<{ key: string }>('SELECT key FROM items WHERE kind = ?', kind)
+    .map((r) => r.key)
+    .filter((k) => !keep.has(k));
+  db.withTransactionSync(() => {
+    for (const k of stale) db.runSync('DELETE FROM items WHERE key = ?', k);
+  });
+  return stale.length;
+}
+
+export function clearGallogItems(): void {
+  getDb().runSync('DELETE FROM items');
 }
 
 export function removeCachedItem(key: string): void {
