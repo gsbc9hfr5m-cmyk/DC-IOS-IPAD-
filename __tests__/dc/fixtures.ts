@@ -104,7 +104,7 @@ export const gallogHtml = (owner = UID, viewer = UID) => `<html><head>
   </select>
 </body></html>`;
 
-export const loginPageHtml = `<form id="loginProcess"><input type="hidden" name="conKey" id="conKey" value="initialconkey123"></form>`;
+export const loginPageHtml = `<meta name="csrf-token" content="${"s".repeat(32)}"><form id="loginProcess"><input type="hidden" name="conKey" id="conKey" value="initialconkey123"></form>`;
 
 export const postViewHtml = `<div class="gallview-tit-box">
   <span class="tit">  테스트 제목  </span>

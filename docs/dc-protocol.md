@@ -61,6 +61,14 @@ token_verify=dc_login&conKey=<페이지 conKey>&code=<ID>&randcode=<#randCode>&c
   - `reason == "wrong_code"`이면 캡챠 코드가 틀렸으므로 새 이미지를 받는다.
   - 그 밖의 값이면 "다시 시도하십시요."
 
+### 2-3a. 실측 (2026-11-26, 존재하지 않는 테스트 ID로 확인) ✅
+- msign 로그인 페이지에도 `<meta name="csrf-token">`이 있다. 원본 JS는 `$.ajaxSetup`으로 모든 AJAX에 `X-CSRF-TOKEN`을 붙인다.
+  - 다만 `/login/access`는 이 헤더가 없어도 `{"result":true,"Block_key":"<24자>"}`를 돌려줬다.
+- `/login/access`는 아이디가 존재하지 않아도 `result: true`다. 아이디가 맞는지는 이 단계에서 알 수 없다.
+- **로그인에 실패하면** `POST /login`이 HTTP 200으로 로그인 페이지를 다시 준다. 리다이렉트도 alert도 없다.
+  - 사유는 `<div class="alert-message">`에 있다. 예: "식별 코드 또는 비밀번호가 일치하지 않습니다. 확인 후 다시 입력해 주세요."
+- "식별 코드"는 디시가 로그인 아이디를 부르는 새 이름이다. 로그인 화면의 "식별 코드 찾기"(`/find/user_code`)는 고정닉 신청 때 받은 보안 코드로 아이디를 찾는 기능이다.
+
 ### 2-3. 로그인 제출 결과 ❓
 - 성공 시 설정되는 쿠키와 리다이렉트 응답: ❓
 - 실패할 때의 응답 형식(HTML 에러 페이지인지 JSON인지): ❓

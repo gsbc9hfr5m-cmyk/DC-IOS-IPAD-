@@ -214,6 +214,19 @@ describe('로그인', () => {
     });
   });
 
+  it("실패하면 디시가 보여준 안내 문구를 그대로 돌려준다", async () => {
+    const t = new F.MockTransport()
+      .on("GET", /msign\.dcinside\.com\/login/, { text: F.loginPageHtml })
+      .on("POST", /\/login\/access$/, { json: { result: true, Block_key: "b".repeat(24) } })
+      .on("POST", /msign\.dcinside\.com\/login$/, {
+        text: F.loginPageHtml + '<div class="alert-message"> 식별 코드 또는 비밀번호가 일치하지 않습니다. <span class="point-red">확인 후 다시 입력</span>해 주세요. </div>',
+      });
+    const client = new DcClient({ transport: t, limiter: instantLimiter() });
+    expect(await client.login(creds)).toEqual({ status: "failed", message: "식별 코드 또는 비밀번호가 일치하지 않습니다. 확인 후 다시 입력해 주세요." });
+    // msign csrf가 있으면 access 요청에 붙인다
+    expect(t.requests.find((r) => /login\/access/.test(r.url))?.headers?.["X-CSRF-TOKEN"]).toBe("s".repeat(32));
+  });
+
   it('로그인 페이지 구조가 바뀌면 structureChanged', async () => {
     const t = new F.MockTransport().on('GET', /msign\.dcinside\.com\/login/, { text: '<html></html>' });
     expect(await codeOf(new DcClient({ transport: t, limiter: instantLimiter() }).login(creds))).toBe('structureChanged');

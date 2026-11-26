@@ -14,7 +14,8 @@ on:
 
 concurrency:
   group: ios-unsigned-${{ github.ref }}
-  cancel-in-progress: true
+  # 실행 중인 빌드는 끝까지 돌리고, 대기 중인 빌드만 최신 것으로 교체한다
+  cancel-in-progress: false
 
 jobs:
   build:

@@ -250,6 +250,14 @@ export function parseLoggedInUid(html: string): string | null {
   return HTML_PATTERNS.myGallogLink.exec(html)?.[1] ?? null;
 }
 
+/** 로그인 실패 시 다시 온 로그인 페이지의 안내 문구 (<div class="alert-message">). 없으면 null. */
+export function parseLoginFailureMessage(html: string): string | null {
+  const inner = extractDivInner(html, 'alert-message');
+  if (inner === null) return null;
+  const text = htmlToText(inner).replace(/\s+/g, ' ').trim();
+  return text === '' ? null : text;
+}
+
 /** 방명록 페이지의 연도 선택 상자 → 연도 목록 (내림차순) */
 export function parseGuestbookYears(html: string): number[] {
   const select = HTML_PATTERNS.guestbookYearSelect.exec(html)?.[1];

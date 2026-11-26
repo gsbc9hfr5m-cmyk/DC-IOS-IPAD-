@@ -20,6 +20,7 @@ import {
   parseHiddenInput,
   parseListDirect,
   parseLoggedInUid,
+  parseLoginFailureMessage,
   parsePostView,
   type GallogPage,
   type GuestbookPage,
@@ -206,6 +207,8 @@ export class DcClient {
     assertTransportOk(page, { loginFlow: true });
     const conKey = parseHiddenInput(page.text, 'conKey');
     if (!conKey) throw new DcError('structureChanged', '로그인 페이지 구조가 예상과 다릅니다.', { endpoint: 'login', field: 'conKey' });
+    // msign 원본 JS는 모든 AJAX에 X-CSRF-TOKEN을 붙인다 ($.ajaxSetup). 지금은 없어도 통과하지만 원본과 맞춘다.
+    const signCsrf = parseCsrfToken(page.text);
 
     // 원본 JS는 code 키를 두 번 보낸다 (아이디, 캡챠 코드). 그대로 재현한다.
     const accessRes = await this.send({
@@ -218,7 +221,11 @@ export class DcClient {
         ['randcode', captcha?.randCode ?? ''],
         ['code', captcha?.code ?? ''],
       ]),
-      headers: { 'X-Requested-With': 'XMLHttpRequest', Referer: `${DC_HOSTS.sign}${DC_PATHS.loginPage}` },
+      headers: {
+        'X-Requested-With': 'XMLHttpRequest',
+        Referer: `${DC_HOSTS.sign}${DC_PATHS.loginPage}`,
+        ...(signCsrf ? { 'X-CSRF-TOKEN': signCsrf } : {}),
+      },
     });
     const access = parseJsonOrThrow(accessRes, 'login/access', { loginFlow: true });
     const a = (access ?? {}) as Record<string, unknown>;
@@ -251,10 +258,19 @@ export class DcClient {
     assertTransportOk(submit, { loginFlow: true });
     if (/otp_num|form_otpjoin/.test(submit.text)) return { status: 'otp' };
 
+    // 실측(2026-11-26): 실패하면 로그인 페이지가 다시 오고 <div class="alert-message">에 사유가 있다.
+    const pageMessage = parseLoginFailureMessage(submit.text);
+    if (pageMessage) return { status: 'failed', message: pageMessage };
+
     const uid = await this.restoreSession();
     if (uid) return { status: 'ok', uid };
     const alertMsg = /alert\((["'])(.*?)\1\)/.exec(submit.text)?.[2];
-    return { status: 'failed', message: alertMsg || '아이디 또는 비밀번호를 확인하세요.' };
+    if (alertMsg) return { status: 'failed', message: alertMsg };
+    // 실패 문구 없이 세션도 없으면 디시 응답 형식이 바뀐 것일 수 있다. 진단 정보를 남긴다.
+    return {
+      status: 'failed',
+      message: `로그인 결과를 확인하지 못했습니다. (응답 ${submit.status}, ${maskUrl(submit.url)})`,
+    };
   }
 
   /** 디시 로그아웃. 실패해도 로컬 세션 정보는 지운다. */

@@ -75,8 +75,8 @@ export const strings = {
   },
   account: {
     title: '디시 계정',
-    idLabel: '아이디',
-    idPlaceholder: '디시 아이디 (식별 코드)',
+    idLabel: '식별 코드',
+    idPlaceholder: '디시 로그인 ID',
     pwLabel: '비밀번호',
     remember: '로그인 정보 저장',
     login: '로그인',
