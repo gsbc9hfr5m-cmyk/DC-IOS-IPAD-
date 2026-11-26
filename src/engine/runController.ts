@@ -7,6 +7,7 @@ import { create } from 'zustand';
 
 import { startPersistentMode, stopPersistentMode } from '@/background/persistentMode';
 import * as repos from '@/db/repos';
+import { syncLiveActivity, updateLastRunWidget } from '@/native/widgets';
 import { notifyNow } from '@/notify/notify';
 import type { Plan } from '@/presets/filter';
 import type { Preset } from '@/presets/types';
@@ -37,6 +38,10 @@ function refresh(current?: string | null) {
     current: current === undefined ? s.current : current,
     engineRunning: engine.running !== null,
   }));
+  // 위젯 / Live Activity (위젯 빌드에서만 실제로 동작)
+  const st = useRun.getState();
+  syncLiveActivity(st.active, st.current, st.engineRunning);
+  updateLastRunWidget(st.last);
 }
 
 /** 알림 종류별 설정 반영 */

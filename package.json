@@ -3,7 +3,9 @@
   "version": "1.0.0",
   "main": "expo-router/entry",
   "dependencies": {
+    "@bacons/apple-targets": "^5.0.0",
     "expo": "~58.0.26",
+    "expo-asset": "~58.0.21",
     "expo-audio": "~58.0.12",
     "expo-background-task": "~58.0.13",
     "expo-blur": "~58.0.6",
@@ -59,5 +61,12 @@
   "private": true,
   "jest": {
     "preset": "jest-expo/ios"
+  },
+  "expo": {
+    "autolinking": {
+      "exclude": [
+        "@bacons/apple-targets"
+      ]
+    }
   }
 }

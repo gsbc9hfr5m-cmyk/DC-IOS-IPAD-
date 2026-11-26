@@ -1,0 +1,6 @@
+{
+  "name": "live-activity",
+  "version": "1.0.0",
+  "private": true,
+  "description": "DC 클리너 Live Activity 브리지 (위젯 빌드에서만 링크)"
+}

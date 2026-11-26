@@ -1,7 +1,10 @@
 # 서명 없는 IPA 빌드 (Apple Developer 계정 없이 Sideloadly/AltStore로 설치할 때 사용)
 # - 실행: GitHub 저장소 > Actions > "iOS unsigned IPA" > Run workflow (또는 main에 push)
-# - 결과: 실행 페이지 하단 Artifacts의 "DC-Cleaner-unsigned-ipa" 다운로드
+# - 결과: 실행 페이지 하단 Artifacts
+#     DC-Cleaner-unsigned-ipa               기본 앱 (권장)
+#     DC-Cleaner-widgets-unsigned-ipa        홈 화면 위젯 + Live Activity 포함 (실험적)
 # - 리퀴드 글래스(iOS 26 API)는 Xcode 26 이상으로 빌드해야 적용된다.
+# - 위젯 빌드는 실패해도 기본 앱 빌드에 영향을 주지 않는다 (continue-on-error).
 name: iOS unsigned IPA
 
 on:
@@ -19,8 +22,22 @@ concurrency:
 
 jobs:
   build:
+    name: build (${{ matrix.variant }})
     runs-on: macos-26
-    timeout-minutes: 60
+    timeout-minutes: 75
+    continue-on-error: ${{ matrix.variant == 'widgets' }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - variant: default
+            artifact: DC-Cleaner-unsigned-ipa
+            ipa: DC-Cleaner-unsigned.ipa
+          - variant: widgets
+            artifact: DC-Cleaner-widgets-unsigned-ipa
+            ipa: DC-Cleaner-widgets-unsigned.ipa
+    env:
+      DC_APPLE_TARGETS: ${{ matrix.variant == 'widgets' && '1' || '0' }}
     steps:
       - uses: actions/checkout@v7
 
@@ -37,10 +54,24 @@ jobs:
       - name: 의존성 설치
         run: npm ci
 
-      - name: 타입 검사 / 테스트
+      - name: 타입 검사 / 테스트 / 아이콘 규칙
+        if: matrix.variant == 'default'
         run: |
           npm run typecheck
           npm test -- --ci
+          npm run check:icons
+
+      - name: 위젯 빌드용 네이티브 모듈 링크
+        if: matrix.variant == 'widgets'
+        run: |
+          node -e '
+            const fs = require("fs");
+            const p = JSON.parse(fs.readFileSync("package.json", "utf8"));
+            p.expo = p.expo || {};
+            p.expo.autolinking = { nativeModulesDir: "./native-modules" };
+            fs.writeFileSync("package.json", JSON.stringify(p, null, 2));
+          '
+          cat package.json | grep -A3 autolinking
 
       - name: 네이티브 프로젝트 생성 (prebuild)
         run: npx expo prebuild --platform ios --clean --no-install
@@ -65,27 +96,28 @@ jobs:
             -destination "generic/platform=iOS" \
             -archivePath "$RUNNER_TEMP/app.xcarchive" \
             CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY="" \
-            | tee "$RUNNER_TEMP/xcodebuild.log" | grep -E "error:|warning: .*deprecated|\*\* ARCHIVE" || true
+            | tee "$RUNNER_TEMP/xcodebuild.log" | grep -E "error:|\*\* ARCHIVE" || true
           test -d "$RUNNER_TEMP/app.xcarchive/Products/Applications"
 
       - name: IPA 패키징
         run: |
           APP=$(ls -d "$RUNNER_TEMP"/app.xcarchive/Products/Applications/*.app | head -n1)
+          ls "$APP/PlugIns" 2>/dev/null || echo "(확장 없음)"
           mkdir -p "$RUNNER_TEMP/ipa/Payload"
           cp -R "$APP" "$RUNNER_TEMP/ipa/Payload/"
-          cd "$RUNNER_TEMP/ipa" && zip -qry "$GITHUB_WORKSPACE/DC-Cleaner-unsigned.ipa" Payload
-          ls -lh "$GITHUB_WORKSPACE/DC-Cleaner-unsigned.ipa"
+          cd "$RUNNER_TEMP/ipa" && zip -qry "$GITHUB_WORKSPACE/${{ matrix.ipa }}" Payload
+          ls -lh "$GITHUB_WORKSPACE/${{ matrix.ipa }}"
 
       - uses: actions/upload-artifact@v7
         with:
-          name: DC-Cleaner-unsigned-ipa
-          path: DC-Cleaner-unsigned.ipa
+          name: ${{ matrix.artifact }}
+          path: ${{ matrix.ipa }}
           retention-days: 14
 
       - name: 빌드 로그 (실패 시)
         if: failure()
         uses: actions/upload-artifact@v7
         with:
-          name: xcodebuild-log
+          name: xcodebuild-log-${{ matrix.variant }}
           path: ${{ runner.temp }}/xcodebuild.log
           if-no-files-found: ignore
