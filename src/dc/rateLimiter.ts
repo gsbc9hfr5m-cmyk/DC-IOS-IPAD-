@@ -28,7 +28,7 @@ export class RateLimiter {
   private lastAt = -Infinity;
   private blockedUntil = 0;
   private strikes = 0;
-  private readonly o: Required<RateLimiterOptions>;
+  private o: Required<RateLimiterOptions>;
 
   constructor(
     private readonly clock: Clock = realClock,
@@ -43,6 +43,12 @@ export class RateLimiter {
       maxBackoffMs: opts.maxBackoffMs ?? 15 * 60_000,
       random: opts.random ?? Math.random,
     };
+  }
+
+  /** 설정 화면의 요청 간격 변경을 반영한다. 한도 보호를 위해 최소 3초. */
+  configure(patch: { minIntervalMs?: number; jitterMs?: number }): void {
+    if (patch.minIntervalMs !== undefined) this.o.minIntervalMs = Math.max(3_000, patch.minIntervalMs);
+    if (patch.jitterMs !== undefined) this.o.jitterMs = Math.max(0, patch.jitterMs);
   }
 
   /** 다음 요청을 보내도 되는 시각까지 기다린다. */

@@ -3,6 +3,7 @@ import type { ReactNode } from 'react';
 import {
   Pressable,
   StyleSheet,
+  Switch,
   Text as RNText,
   TextInput,
   View,
@@ -132,7 +133,76 @@ export function ListRow({ label, icon, help, value, right, onPress, last }: RowP
   );
 }
 
-type FieldProps = Omit<TextInputProps, 'style'> & { label: string; help?: HelpId; last?: boolean };
+/** 스위치 한 줄 */
+export function SwitchRow({
+  label,
+  help,
+  value,
+  onChange,
+  disabled,
+  last,
+}: {
+  label: string;
+  help?: HelpId;
+  value: boolean;
+  onChange: (v: boolean) => void;
+  disabled?: boolean;
+  last?: boolean;
+}) {
+  return (
+    <ListRow
+      label={label}
+      help={help}
+      last={last}
+      right={
+        <Switch
+          value={value}
+          disabled={disabled}
+          onValueChange={(v) => {
+            void Haptics.selectionAsync();
+            onChange(v);
+          }}
+        />
+      }
+    />
+  );
+}
+
+/** 선택형 한 줄 (선택되면 체크 표시) */
+export function OptionRow({ label, help, selected, onPress, last }: { label: string; help?: HelpId; selected: boolean; onPress: () => void; last?: boolean }) {
+  return (
+    <ListRow
+      label={label}
+      help={help}
+      last={last}
+      right={selected ? <Icon name="check" color="tint" size={18} /> : <View style={styles.checkSpace} />}
+      onPress={() => {
+        void Haptics.selectionAsync();
+        onPress();
+      }}
+    />
+  );
+}
+
+/** 작은 선택 칩 (요일, 갤러리 ID 등) */
+export function Chip({ label, selected, onPress }: { label: string; selected: boolean; onPress: () => void }) {
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityState={{ selected }}
+      onPress={() => {
+        void Haptics.selectionAsync();
+        onPress();
+      }}
+      style={[styles.chip, { borderColor: selected ? colors.tint : colors.separator }]}>
+      <Text variant="callout" style={{ color: selected ? colors.tint : colors.label }}>
+        {label}
+      </Text>
+    </Pressable>
+  );
+}
+
+type FieldProps =Omit<TextInputProps, 'style'> & { label: string; help?: HelpId; last?: boolean };
 
 /** 글래스 카드 안의 입력 행 */
 export function TextField({ label, help, last, ...input }: FieldProps) {
@@ -191,6 +261,8 @@ const styles = StyleSheet.create({
   field: { minHeight: 52, paddingHorizontal: 16, flexDirection: 'row', alignItems: 'center', gap: 8 },
   fieldLabel: { width: 96 },
   fieldInput: { flex: 1, fontSize: 17, color: colors.label, paddingVertical: 12 },
+  checkSpace: { width: 18 },
+  chip: { minHeight: 36, paddingHorizontal: 14, borderRadius: 18, borderWidth: 1, alignItems: "center", justifyContent: "center" },
   section: { gap: 6 },
   sectionTitle: { paddingHorizontal: 16, textTransform: 'uppercase' },
   sectionCard: { padding: 0, gap: 0 },

@@ -1,10 +1,16 @@
 import { NativeTabs } from 'expo-router/native-tabs';
 import { DarkTheme, DefaultTheme, ThemeProvider } from 'expo-router';
 import { useEffect } from 'react';
-import { useColorScheme } from 'react-native';
+import { StyleSheet, useColorScheme } from 'react-native';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import type { SFSymbol } from 'sf-symbols-typescript';
 
+// 백그라운드 작업 정의는 앱 진입 시 바로 실행되어야 한다
+import { registerBackgroundTask } from '@/background/backgroundTask';
 import { CaptchaSheet } from '@/captcha/CaptchaSheet';
+import { initRunState } from '@/engine/runController';
+import { syncScheduleNotifications } from '@/schedule/scheduler';
+import { AppLockGate } from '@/security/AppLockGate';
 import { HelpProvider } from '@/help/HelpBadge';
 import { restoreSession } from '@/services/session';
 import { OnboardingGate } from '@/onboarding/OnboardingGate';
@@ -26,8 +32,12 @@ export default function RootLayout() {
   useEffect(() => {
     // 앱 시작 시 쿠키 세션 확인 → 없으면 저장된 자격증명으로 조용히 재로그인
     void restoreSession();
+    initRunState();
+    void registerBackgroundTask();
+    void syncScheduleNotifications();
   }, []);
   return (
+    <GestureHandlerRootView style={StyleSheet.absoluteFill}>
     <ThemeProvider value={scheme === 'dark' ? DarkTheme : DefaultTheme}>
       <HelpProvider>
         <OnboardingGate>
@@ -51,7 +61,9 @@ export default function RootLayout() {
           </NativeTabs>
           <CaptchaSheet />
         </OnboardingGate>
+        <AppLockGate />
       </HelpProvider>
     </ThemeProvider>
+    </GestureHandlerRootView>
   );
 }

@@ -344,6 +344,21 @@ export class DcClient {
     return { status: 'ok', view: parsePostView(res.text) };
   }
 
+  /**
+   * 원글 페이지에 이 댓글이 아직 있는가 (삭제 검증용).
+   * 실측(dc-protocol §4-A): 원글 페이지 HTML에 댓글 번호가 그대로 들어 있고, 삭제 후에는 사라졌다.
+   * 원글이 삭제됐으면 false.
+   */
+  async postHasComment(gallery: GalleryType, gallId: string, postNo: string, commentNo: string): Promise<boolean> {
+    const res = await this.send({
+      method: 'GET',
+      url: `${DC_HOSTS.mobile}${DC_PATHS.view(VIEW_BASE[gallery], gallId, postNo)}`,
+    });
+    if (isDeletedPostPage(res.status, res.text)) return false;
+    assertTransportOk(res);
+    return new RegExp(`(^|[^0-9])${commentNo}([^0-9]|$)`).test(res.text);
+  }
+
   // ───────────────────────── 방명록 ─────────────────────────
 
   /** 방명록이 있는 연도 목록 (방명록 페이지의 연도 선택 상자) */
