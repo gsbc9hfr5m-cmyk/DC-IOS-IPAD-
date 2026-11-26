@@ -13,11 +13,13 @@ import { DC_HOSTS } from '@/dc/config';
 import { DcClient, type Credentials, type LoginResult } from '@/dc/DcClient';
 import { DcError, isDcError } from '@/dc/errors';
 import { fetchImageBase64 } from '@/dc/http';
+import { logTrace } from '@/debug/debugLog';
 import { notifyNow } from '@/notify/notify';
 import { clearDcCredentials, loadCaptchaKey, loadDcCredentials, saveDcCredentials } from '@/secure/secrets';
 import { getSettings } from '@/settings/settingsStore';
 
-export const dc = new DcClient();
+// 디버그 모드가 켜져 있으면 마스킹된 요청 요약을 기기 안 파일에 남긴다
+export const dc = new DcClient({ onTrace: logTrace });
 
 export const captcha = new CaptchaService({
   getMode: () => getSettings().captchaMode,

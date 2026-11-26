@@ -8,9 +8,11 @@ import type { SFSymbol } from 'sf-symbols-typescript';
 // 백그라운드 작업 정의는 앱 진입 시 바로 실행되어야 한다
 import { registerBackgroundTask } from '@/background/backgroundTask';
 import { CaptchaSheet } from '@/captcha/CaptchaSheet';
+import { installCrashHandler } from '@/debug/debugLog';
 import { initRunState } from '@/engine/runController';
 import { syncScheduleNotifications } from '@/schedule/scheduler';
 import { AppLockGate } from '@/security/AppLockGate';
+import { ShortcutHandler } from '@/shortcuts/ShortcutHandler';
 import { HelpProvider } from '@/help/HelpBadge';
 import { restoreSession } from '@/services/session';
 import { OnboardingGate } from '@/onboarding/OnboardingGate';
@@ -26,6 +28,8 @@ import { ICONS } from '@/ui/icons';
 function tabIcon(name: SFSymbol) {
   return { default: name, selected: name } as const;
 }
+
+installCrashHandler();
 
 export default function RootLayout() {
   const scheme = useColorScheme();
@@ -62,6 +66,7 @@ export default function RootLayout() {
           <CaptchaSheet />
         </OnboardingGate>
         <AppLockGate />
+        <ShortcutHandler />
       </HelpProvider>
     </ThemeProvider>
     </GestureHandlerRootView>
