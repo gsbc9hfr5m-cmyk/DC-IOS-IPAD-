@@ -28,31 +28,72 @@ export interface HttpTransport {
   send(req: HttpRequest): Promise<HttpResponse>;
 }
 
+const MAX_REDIRECTS = 10;
+
+/** 3xx + Location이면 다음 절대 URL, 아니면 null */
+export function redirectTarget(status: number, location: string | undefined, base: string): string | null {
+  if (status < 300 || status >= 400 || status === 304 || !location) return null;
+  const loc = location.trim();
+  if (/^https?:\/\//i.test(loc)) return loc;
+  const m = /^(https?:)\/\/([^/?#]+)([^?#]*)/i.exec(base);
+  if (!m) return null;
+  const [, scheme, host, path] = m;
+  if (loc.startsWith('//')) return `${scheme}${loc}`;
+  if (loc.startsWith('/')) return `${scheme}//${host}${loc}`;
+  const dir = (path ?? '').replace(/[^/]*$/, '') || '/';
+  return `${scheme}//${host}${dir}${loc}`;
+}
+
 export class FetchTransport implements HttpTransport {
   constructor(private readonly timeoutMs = 20_000) {}
 
+  /**
+   * 리다이렉트는 직접 한 단계씩 따라간다.
+   * ⚠️ 실측(2026-11-26): expo/fetch(iOS)는 요청 시작 시점의 쿠키를 Cookie 헤더로 고정해 넣고,
+   * 자동 리다이렉트 때 그 헤더를 그대로 복사한다. 로그인 SSO(msign → sso → msign, 307)에서
+   * 중간에 받은 쿠키가 실리지 않아 "재이동이 너무 많음"으로 실패했다.
+   * 단계마다 새 요청을 만들면 그때의 쿠키 저장소(HTTPCookieStorage)로 다시 계산된다.
+   */
   async send(req: HttpRequest): Promise<HttpResponse> {
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), this.timeoutMs);
     try {
-      const res = await fetch(req.url, {
-        method: req.method,
-        body: req.body,
-        credentials: 'include',
-        signal: controller.signal,
-        headers: {
-          'User-Agent': MOBILE_USER_AGENT,
-          Accept: req.method === 'POST' ? 'application/json, text/javascript, */*; q=0.01' : 'text/html,*/*',
-          'Accept-Language': 'ko-KR,ko;q=0.9',
-          ...(req.body !== undefined ? { 'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8' } : {}),
-          ...req.headers,
-        },
-      });
-      const headers: Record<string, string> = {};
-      res.headers.forEach((v, k) => {
-        headers[k.toLowerCase()] = v;
-      });
-      return { status: res.status, url: res.url || req.url, headers, text: await res.text() };
+      let method: HttpRequest['method'] = req.method;
+      let url = req.url;
+      let body = req.body;
+      for (let hop = 0; hop <= MAX_REDIRECTS; hop++) {
+        const res = await fetch(url, {
+          method,
+          body,
+          credentials: 'include',
+          redirect: 'manual',
+          signal: controller.signal,
+          headers: {
+            'User-Agent': MOBILE_USER_AGENT,
+            Accept: method === 'POST' ? 'application/json, text/javascript, */*; q=0.01' : 'text/html,*/*',
+            'Accept-Language': 'ko-KR,ko;q=0.9',
+            ...(body !== undefined ? { 'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8' } : {}),
+            ...req.headers,
+          },
+        });
+        const headers: Record<string, string> = {};
+        res.headers.forEach((v, k) => {
+          headers[k.toLowerCase()] = v;
+        });
+        const next = redirectTarget(res.status, headers.location, url);
+        if (next) {
+          await res.text().catch(() => '');
+          // 307/308은 메서드와 본문을 유지하고, 나머지(301/302/303)는 GET으로 바꾼다 (브라우저와 같음)
+          if (res.status !== 307 && res.status !== 308) {
+            method = 'GET';
+            body = undefined;
+          }
+          url = next;
+          continue;
+        }
+        return { status: res.status, url: res.url || url, headers, text: await res.text() };
+      }
+      throw new Error('too many redirects');
     } finally {
       clearTimeout(timer);
     }
