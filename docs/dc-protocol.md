@@ -69,6 +69,14 @@ token_verify=dc_login&conKey=<페이지 conKey>&code=<ID>&randcode=<#randCode>&c
   - 사유는 `<div class="alert-message">`에 있다. 예: "식별 코드 또는 비밀번호가 일치하지 않습니다. 확인 후 다시 입력해 주세요."
 - "식별 코드"는 디시가 로그인 아이디를 부르는 새 이름이다. 로그인 화면의 "식별 코드 찾기"(`/find/user_code`)는 고정닉 신청 때 받은 보안 코드로 아이디를 찾는 기능이다.
 
+### 2-3b. 실측 (2026-11-26, 실제 계정) ✅
+- ⚠️ `/login/access`에 `Accept: application/json, ...`를 보내면 **HTTP 200 + 빈 본문**이 온다. 원본 jQuery와 같은 `Accept: */*`로 보내야 JSON이 온다.
+- 로그인 제출은 브라우저 폼처럼 `Accept: text/html...`로 보낸다.
+- 성공 흐름: `POST msign/login` → **307** `sso.dcinside.com/auth/` (POST 유지) → **307** `msign/login` (POST 유지) → 200.
+  - 쿠키: `sso_token_dcinside`, `userAgent`(msign), `ssoLid`, `ssoSec`(.sso), `dc_m_login`, `dc_m_date`, `mc_enc`, `remember_secret`(.dcinside.com)
+  - 그 뒤 `m.dcinside.com/`에 로그아웃 링크와 내 갤로그 링크가 보인다.
+- 진단 도구: `tools/login-diagnose.ps1` (curl), `tools/login-live.ps1` (앱의 DcClient 코드로 실서버 로그인 + 갤로그 조회, 읽기 전용).
+
 ### 2-3. 로그인 제출 결과 ❓
 - 성공 시 설정되는 쿠키와 리다이렉트 응답: ❓
 - 실패할 때의 응답 형식(HTML 에러 페이지인지 JSON인지): ❓

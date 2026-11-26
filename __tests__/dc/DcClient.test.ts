@@ -225,6 +225,9 @@ describe('로그인', () => {
     expect(await client.login(creds)).toEqual({ status: "failed", message: "식별 코드 또는 비밀번호가 일치하지 않습니다. 확인 후 다시 입력해 주세요." });
     // msign csrf가 있으면 access 요청에 붙인다
     expect(t.requests.find((r) => /login\/access/.test(r.url))?.headers?.["X-CSRF-TOKEN"]).toBe("s".repeat(32));
+    // 실측: Accept에 application/json이 있으면 /login/access가 빈 본문을 준다
+    expect(t.requests.find((r) => /login\/access/.test(r.url))?.headers?.Accept).toBe("*/*");
+    expect(t.requests.find((r) => r.method === "POST" && /msign\.dcinside\.com\/login$/.test(r.url))?.headers?.Accept).toMatch(/^text\/html/);
   });
 
   it('로그인 페이지 구조가 바뀌면 structureChanged', async () => {

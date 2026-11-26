@@ -93,6 +93,8 @@ export class DcClient {
     try {
       res = await this.transport.send(req);
     } catch (e) {
+      // 통신 실패도 디버그 기록에 남긴다 (status 0)
+      this.trace(req, { status: 0, url: req.url, headers: {}, text: '' }, started, `network: ${String(e).slice(0, 80)}`);
       throw new DcError('network', '네트워크 오류가 발생했습니다.', { path: maskUrl(req.url), error: String(e).slice(0, 120) });
     }
     this.limiter.observe(res.headers);
@@ -222,6 +224,9 @@ export class DcClient {
         ['code', captcha?.code ?? ''],
       ]),
       headers: {
+        // 실측(2026-11-26): Accept에 application/json을 넣으면 디시가 빈 본문(200)을 준다.
+        // 원본 jQuery 요청과 같은 */*로 보내야 {"result":true,"Block_key":...}가 온다.
+        Accept: '*/*',
         'X-Requested-With': 'XMLHttpRequest',
         Referer: `${DC_HOSTS.sign}${DC_PATHS.loginPage}`,
         ...(signCsrf ? { 'X-CSRF-TOKEN': signCsrf } : {}),
@@ -238,7 +243,8 @@ export class DcClient {
           wrongCode: a.reason === 'wrong_code',
         };
       }
-      return { status: 'failed', message: '로그인 사전 확인에 실패했습니다. 잠시 후 다시 시도하세요.' };
+      const why = accessRes.text.trim() === '' ? '빈 응답' : `응답 ${accessRes.status}${typeof a.reason === 'string' ? `, ${a.reason}` : ''}`;
+      return { status: 'failed', message: `로그인 사전 확인에 실패했습니다. 잠시 후 다시 시도하세요. (${why})` };
     }
     const blockKey = parseAccessKey(access, 'login/access');
 
@@ -253,7 +259,11 @@ export class DcClient {
         ['r_url', rUrl],
         ['_token', ''],
       ]),
-      headers: { Referer: `${DC_HOSTS.sign}${DC_PATHS.loginPage}` },
+      // 브라우저의 폼 제출과 같은 Accept. 성공하면 307로 sso.dcinside.com을 거쳐 돌아온다 (POST 유지).
+      headers: {
+        Accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+        Referer: `${DC_HOSTS.sign}${DC_PATHS.loginPage}`,
+      },
     });
     assertTransportOk(submit, { loginFlow: true });
     if (/otp_num|form_otpjoin/.test(submit.text)) return { status: 'otp' };
